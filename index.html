@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cruzadinha ArqComp</title>
+  <meta name="description" content="Cruzadinha e jogo da memória para estudar Tópicos de Arquitetura Computacional.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="placa" aria-hidden="true"></div>
+
+  <header class="topo">
+    <div class="chip-logo" aria-hidden="true">
+      <span>ARQ</span>
+    </div>
+    <div>
+      <p class="sobretitulo">Arquitetura Computacional · Sprint 3</p>
+      <h1>Cruzadinha <span class="destaque">ArqComp</span></h1>
+      <p class="subtitulo">Do circuito ao computador: treine os termos da aula jogando.</p>
+    </div>
+  </header>
+
+  <nav class="abas" role="tablist">
+    <button class="aba ativa" role="tab" aria-selected="true" data-alvo="cruzadinha">
+      <span class="led"></span> Cruzadinha
+    </button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="memoria">
+      <span class="led"></span> Jogo da Memória Cache
+    </button>
+  </nav>
+
+  <main>
+    <!-- ===================== CRUZADINHA ===================== -->
+    <section id="cruzadinha" class="painel ativo">
+      <div class="barra-status">
+        <div class="contador">
+          <span class="rotulo">Acertos</span>
+          <strong id="contador">0 de 16 palavras</strong>
+        </div>
+        <div class="progresso" aria-hidden="true"><div id="progresso-barra"></div></div>
+        <div class="botoes">
+          <button id="btn-conferir" class="btn btn-principal">Conferir</button>
+          <button id="btn-reiniciar" class="btn">Reiniciar</button>
+        </div>
+      </div>
+
+      <p id="mensagem" class="mensagem" role="status">Clique numa casa ou numa pista e comece a digitar. Clique de novo na casa para trocar entre horizontal e vertical.</p>
+
+      <div class="area-jogo">
+        <div class="tabuleiro-moldura">
+          <div id="tabuleiro" class="tabuleiro" aria-label="Tabuleiro da cruzadinha"></div>
+        </div>
+
+        <aside class="pistas">
+          <div id="pista-atual" class="pista-atual">Selecione uma palavra</div>
+          <div class="grupo-pistas">
+            <h2>→ Horizontais</h2>
+            <ol id="pistas-horizontais"></ol>
+          </div>
+          <div class="grupo-pistas">
+            <h2>↓ Verticais</h2>
+            <ol id="pistas-verticais"></ol>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===================== JOGO DA MEMÓRIA ===================== -->
+    <section id="memoria" class="painel">
+      <div class="intro-memoria">
+        <h2>Jogo da Memória Cache</h2>
+        <p>Vire duas cartas e ligue cada <strong>termo</strong> à sua <strong>pista</strong>. Achou o par? <em>Cache hit!</em> Errou? <em>Cache miss</em>, e as cartas voltam. Tente terminar com a maior taxa de acertos.</p>
+      </div>
+
+      <div class="barra-status">
+        <div class="placar">
+          <div><span class="rotulo">Hits</span><strong id="mem-hits">0</strong></div>
+          <div><span class="rotulo">Misses</span><strong id="mem-misses">0</strong></div>
+          <div><span class="rotulo">Taxa de acerto</span><strong id="mem-taxa">—</strong></div>
+          <div><span class="rotulo">Tempo</span><strong id="mem-tempo">0s</strong></div>
+        </div>
+        <div class="botoes">
+          <button id="btn-nova-memoria" class="btn btn-principal">Nova partida</button>
+        </div>
+      </div>
+
+      <p id="mem-mensagem" class="mensagem" role="status">8 pares sorteados entre as 16 palavras. Boa sorte!</p>
+
+      <div id="mesa-memoria" class="mesa-memoria"></div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <p>Feito com HTML, CSS e JavaScript puros · Conteúdo baseado no e-book <em>Tópicos de Arquitetura Computacional</em> (SPTech)</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
