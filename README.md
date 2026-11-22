@@ -1,6 +1,6 @@
 # Cruzadinha ArqComp
 
-Jogo de cruzadinha para treinar os termos da aula de **Tópicos de Arquitetura Computacional** (Sprint 3). O site também traz um segundo jogo, o **Jogo da Memória Cache**, que usa as mesmas palavras.
+Jogo de cruzadinha para treinar os termos da aula de **Tópicos de Arquitetura Computacional** (Sprint 3). O site também traz um segundo jogo, o **Decodificador de Instruções**, que usa as mesmas palavras.
 
 Feito com HTML, CSS e JavaScript puros, sem bibliotecas.
 
@@ -17,12 +17,14 @@ Feito com HTML, CSS e JavaScript puros, sem bibliotecas.
 5. Clique em **Conferir**: as palavras certas ficam verdes, as erradas ficam vermelhas, e o contador mostra quantas você acertou (por exemplo, "8 de 16 palavras").
 6. Clique em **Reiniciar** para limpar o tabuleiro e começar de novo.
 
-### Jogo da Memória Cache
+### Decodificador de Instruções
 
-1. Vire duas cartas por vez e ligue cada **termo** à sua **pista**.
-2. Par certo é um **cache hit**: as cartas ficam abertas. Par errado é um **cache miss**: as cartas voltam.
-3. Ganhe encontrando os 8 pares. O placar mostra hits, misses, taxa de acerto e tempo.
-4. Cada partida sorteia 8 das 16 palavras. Clique em **Nova partida** para jogar de novo.
+1. Clique em **Iniciar**. Você tem **120 segundos**.
+2. Aparece uma pista e as letras da resposta chegam embaralhadas em "chips", junto com **2 letras intrusas**.
+3. Monte a palavra clicando nos chips ou digitando no teclado. Clique numa casa preenchida (ou use `Backspace`) para devolver a letra.
+4. Palavra certa vale 10 pontos por letra. Acertos seguidos aumentam o multiplicador de sequência (até x5); um erro zera a sequência.
+5. **Dica** coloca uma letra certa e custa 5 pontos (letras de dica não pontuam). **Pular** manda a palavra para o fim da fila.
+6. O jogo acaba quando o tempo zera ou quando as 16 palavras são decodificadas.
 
 ## Palavras e pistas
 
@@ -59,7 +61,7 @@ O tabuleiro usa as 16 palavras da lista, e todas se cruzam com pelo menos uma ou
 ```
 index.html   página com as duas abas de jogo
 style.css    tema visual de placa de circuito
-script.js    lógica da cruzadinha e do jogo da memória
+script.js    lógica da cruzadinha e do decodificador
 README.md    este arquivo
 ```
 
