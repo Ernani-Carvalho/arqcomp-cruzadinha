@@ -272,7 +272,79 @@ function limparMarcacao(l, c) {
 }
 
 // ---------------------------------------------------------
-// 4. Abas
+// 4. Conferir, contador e reiniciar
+// ---------------------------------------------------------
+const contadorEl = document.getElementById("contador");
+const barraEl = document.getElementById("progresso-barra");
+const mensagemEl = document.getElementById("mensagem");
+
+function palavraDigitada(palavra) {
+  return casasDa(palavra).map(({ l, c }) => grade[l][c].input.value || " ").join("");
+}
+
+function atualizarContador(acertos) {
+  contadorEl.textContent = `${acertos} de ${PALAVRAS.length} palavras`;
+  barraEl.style.width = `${(acertos / PALAVRAS.length) * 100}%`;
+}
+
+function mostrarMensagem(texto, tipo) {
+  mensagemEl.textContent = texto;
+  mensagemEl.className = "mensagem" + (tipo ? " " + tipo : "");
+}
+
+function conferir() {
+  let acertos = 0;
+  const certas = new Set();
+  const erradas = new Set();
+
+  PALAVRAS.forEach((p) => {
+    const ok = palavraDigitada(p) === p.resposta;
+    if (ok) acertos++;
+    p.itemLista.classList.toggle("ok", ok);
+    p.itemLista.classList.toggle("erro", !ok);
+    casasDa(p).forEach(({ l, c }) => (ok ? certas : erradas).add(grade[l][c]));
+  });
+
+  // Uma casa de cruzamento fica verde se pelo menos uma das palavras dela está certa
+  grade.flat().filter(Boolean).forEach((dado) => {
+    dado.elemento.classList.remove("certa", "errada");
+    void dado.elemento.offsetWidth; // reinicia a animação
+    if (certas.has(dado)) dado.elemento.classList.add("certa");
+    else if (erradas.has(dado)) dado.elemento.classList.add("errada");
+  });
+
+  atualizarContador(acertos);
+
+  if (acertos === PALAVRAS.length) {
+    mostrarMensagem("Programa executado sem erros! Você completou a cruzadinha inteira.", "sucesso");
+  } else if (acertos === 0) {
+    mostrarMensagem("Nenhuma palavra certa ainda. Leia as pistas com calma e tente de novo.", "alerta");
+  } else {
+    const faltam = PALAVRAS.length - acertos;
+    const texto = faltam === 1 ? "Falta 1" : `Faltam ${faltam}`;
+    mostrarMensagem(`Boa! ${acertos} certas. ${texto}: as pistas marcadas com ✗ precisam de revisão.`, "alerta");
+  }
+}
+
+function reiniciar() {
+  grade.flat().filter(Boolean).forEach((dado) => {
+    dado.input.value = "";
+    dado.elemento.classList.remove("certa", "errada");
+  });
+  PALAVRAS.forEach((p) => p.itemLista.classList.remove("ok", "erro"));
+  atualizarContador(0);
+  mostrarMensagem("Tabuleiro limpo. Sinal de reset: o Contador de Programa voltou ao início!");
+  palavraAtual = null;
+  ultimoClique = null;
+  pistaAtualEl.textContent = "Selecione uma palavra";
+  destacar();
+}
+
+document.getElementById("btn-conferir").addEventListener("click", conferir);
+document.getElementById("btn-reiniciar").addEventListener("click", reiniciar);
+
+// ---------------------------------------------------------
+// 5. Abas
 // ---------------------------------------------------------
 document.querySelectorAll(".aba").forEach((aba) => {
   aba.addEventListener("click", () => {
