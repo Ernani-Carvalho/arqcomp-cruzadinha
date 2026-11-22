@@ -344,7 +344,141 @@ document.getElementById("btn-conferir").addEventListener("click", conferir);
 document.getElementById("btn-reiniciar").addEventListener("click", reiniciar);
 
 // ---------------------------------------------------------
-// 5. Abas
+// 5. Jogo da Memória Cache
+//    Ligue o termo à pista. Par certo = cache hit, errado = cache miss.
+// ---------------------------------------------------------
+const PARES_POR_PARTIDA = 8;
+const mesaEl = document.getElementById("mesa-memoria");
+const hitsEl = document.getElementById("mem-hits");
+const missesEl = document.getElementById("mem-misses");
+const taxaEl = document.getElementById("mem-taxa");
+const tempoEl = document.getElementById("mem-tempo");
+const memMensagemEl = document.getElementById("mem-mensagem");
+
+let memViradas = [];
+let memHits = 0;
+let memMisses = 0;
+let memSegundos = 0;
+let memRelogio = null;
+let memTravada = false;
+
+function embaralhar(lista) {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+function atualizarPlacar() {
+  hitsEl.textContent = memHits;
+  missesEl.textContent = memMisses;
+  const total = memHits + memMisses;
+  taxaEl.textContent = total ? `${Math.round((memHits / total) * 100)}%` : "—";
+  tempoEl.textContent = `${memSegundos}s`;
+}
+
+function criarCarta(palavra, tipo) {
+  const carta = document.createElement("button");
+  carta.className = "carta";
+  carta.dataset.par = palavra.resposta;
+  carta.setAttribute("aria-label", "Carta virada para baixo");
+  const conteudo = tipo === "termo" ? palavra.termo : palavra.pista;
+  const etiqueta = tipo === "termo" ? "termo" : "pista";
+  carta.innerHTML = `
+    <div class="carta-interna">
+      <div class="face verso">0x${Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, "0")}</div>
+      <div class="face frente ${tipo === "termo" ? "termo" : "definicao"}">
+        <span class="etiqueta">${etiqueta}</span>
+        <span>${conteudo}</span>
+      </div>
+    </div>`;
+  carta.addEventListener("click", () => virarCarta(carta, conteudo));
+  return carta;
+}
+
+function novaPartidaMemoria() {
+  clearInterval(memRelogio);
+  memRelogio = null;
+  memViradas = [];
+  memHits = 0;
+  memMisses = 0;
+  memSegundos = 0;
+  memTravada = false;
+  atualizarPlacar();
+  memMensagemEl.textContent = `${PARES_POR_PARTIDA} pares sorteados entre as ${PALAVRAS.length} palavras. Boa sorte!`;
+  memMensagemEl.className = "mensagem";
+
+  const sorteadas = embaralhar(PALAVRAS).slice(0, PARES_POR_PARTIDA);
+  const cartas = [];
+  sorteadas.forEach((p) => {
+    cartas.push(criarCarta(p, "termo"));
+    cartas.push(criarCarta(p, "pista"));
+  });
+  mesaEl.innerHTML = "";
+  embaralhar(cartas).forEach((carta) => mesaEl.appendChild(carta));
+}
+
+function virarCarta(carta, conteudo) {
+  if (memTravada || carta.classList.contains("virada") || carta.classList.contains("par")) return;
+
+  // O relógio só começa no primeiro clique
+  if (!memRelogio) {
+    memRelogio = setInterval(() => {
+      memSegundos++;
+      atualizarPlacar();
+    }, 1000);
+  }
+
+  carta.classList.add("virada");
+  carta.setAttribute("aria-label", conteudo);
+  memViradas.push(carta);
+  if (memViradas.length < 2) return;
+
+  const [a, b] = memViradas;
+  memViradas = [];
+
+  if (a.dataset.par === b.dataset.par) {
+    memHits++;
+    [a, b].forEach((c) => {
+      c.classList.remove("virada");
+      c.classList.add("par");
+    });
+    const palavra = PALAVRAS.find((p) => p.resposta === a.dataset.par);
+    memMensagemEl.textContent = `Cache hit! ${palavra.termo}: ${palavra.pista}`;
+    memMensagemEl.className = "mensagem sucesso";
+  } else {
+    memMisses++;
+    memTravada = true;
+    [a, b].forEach((c) => c.classList.add("miss"));
+    memMensagemEl.textContent = "Cache miss! Esses dois não formam par. Hora de buscar na RAM...";
+    memMensagemEl.className = "mensagem alerta";
+    setTimeout(() => {
+      [a, b].forEach((c) => {
+        c.classList.remove("virada", "miss");
+        c.setAttribute("aria-label", "Carta virada para baixo");
+      });
+      memTravada = false;
+    }, 1100);
+  }
+  atualizarPlacar();
+
+  if (memHits === PARES_POR_PARTIDA) {
+    clearInterval(memRelogio);
+    const taxa = Math.round((memHits / (memHits + memMisses)) * 100);
+    let nivel = "Continue treinando: até a RAM é mais rápida que um HD!";
+    if (taxa >= 80) nivel = "Desempenho de registrador!";
+    else if (taxa >= 50) nivel = "Velocidade de cache, muito bom!";
+    memMensagemEl.textContent = `Todos os pares encontrados em ${memSegundos}s com ${taxa}% de acerto. ${nivel}`;
+    memMensagemEl.className = "mensagem sucesso";
+  }
+}
+
+document.getElementById("btn-nova-memoria").addEventListener("click", novaPartidaMemoria);
+
+// ---------------------------------------------------------
+// 6. Abas
 // ---------------------------------------------------------
 document.querySelectorAll(".aba").forEach((aba) => {
   aba.addEventListener("click", () => {
@@ -363,3 +497,4 @@ document.querySelectorAll(".aba").forEach((aba) => {
 // ---------------------------------------------------------
 montarGrade();
 montarPistas();
+novaPartidaMemoria();
