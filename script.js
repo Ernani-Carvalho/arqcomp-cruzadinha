@@ -344,23 +344,30 @@ document.getElementById("btn-conferir").addEventListener("click", conferir);
 document.getElementById("btn-reiniciar").addEventListener("click", reiniciar);
 
 // ---------------------------------------------------------
-// 5. Jogo da Memória Cache
-//    Ligue o termo à pista. Par certo = cache hit, errado = cache miss.
+// 5. Decodificador de Instruções
+//    A pista aparece e as letras chegam embaralhadas (com 2 intrusas).
+//    O jogador monta a palavra antes de o tempo acabar.
 // ---------------------------------------------------------
-const PARES_POR_PARTIDA = 8;
-const mesaEl = document.getElementById("mesa-memoria");
-const hitsEl = document.getElementById("mem-hits");
-const missesEl = document.getElementById("mem-misses");
-const taxaEl = document.getElementById("mem-taxa");
-const tempoEl = document.getElementById("mem-tempo");
-const memMensagemEl = document.getElementById("mem-mensagem");
+const TEMPO_PARTIDA = 120;
+const LETRAS_INTRUSAS = 2;
 
-let memViradas = [];
-let memHits = 0;
-let memMisses = 0;
-let memSegundos = 0;
-let memRelogio = null;
-let memTravada = false;
+const decPontosEl = document.getElementById("dec-pontos");
+const decAcertosEl = document.getElementById("dec-acertos");
+const decSequenciaEl = document.getElementById("dec-sequencia");
+const decTempoEl = document.getElementById("dec-tempo");
+const decClockEl = document.getElementById("dec-clock-barra");
+const decEnderecoEl = document.getElementById("dec-endereco");
+const decFaseEl = document.getElementById("dec-fase");
+const decPistaEl = document.getElementById("dec-pista");
+const decSlotsEl = document.getElementById("dec-slots");
+const decChipsEl = document.getElementById("dec-chips");
+const decMensagemEl = document.getElementById("dec-mensagem");
+const btnIniciar = document.getElementById("btn-dec-iniciar");
+const btnLimpar = document.getElementById("btn-dec-limpar");
+const btnDica = document.getElementById("btn-dec-dica");
+const btnPular = document.getElementById("btn-dec-pular");
+
+let dec = null; // estado da partida
 
 function embaralhar(lista) {
   const copia = [...lista];
@@ -371,111 +378,236 @@ function embaralhar(lista) {
   return copia;
 }
 
-function atualizarPlacar() {
-  hitsEl.textContent = memHits;
-  missesEl.textContent = memMisses;
-  const total = memHits + memMisses;
-  taxaEl.textContent = total ? `${Math.round((memHits / total) * 100)}%` : "—";
-  tempoEl.textContent = `${memSegundos}s`;
+// Letras da resposta + intrusas, embaralhadas sem formar a resposta pronta
+function gerarChips(resposta) {
+  const alfabeto = "ABCDEFGHIJLMNOPRSTUVXZ";
+  const letras = resposta.split("");
+  for (let i = 0; i < LETRAS_INTRUSAS; i++) {
+    letras.push(alfabeto[Math.floor(Math.random() * alfabeto.length)]);
+  }
+  let mistura;
+  do {
+    mistura = embaralhar(letras);
+  } while (mistura.join("").includes(resposta) || mistura.join("").includes("CU"));
+  return mistura;
 }
 
-function criarCarta(palavra, tipo) {
-  const carta = document.createElement("button");
-  carta.className = "carta";
-  carta.dataset.par = palavra.resposta;
-  carta.setAttribute("aria-label", "Carta virada para baixo");
-  const conteudo = tipo === "termo" ? palavra.termo : palavra.pista;
-  const etiqueta = tipo === "termo" ? "termo" : "pista";
-  carta.innerHTML = `
-    <div class="carta-interna">
-      <div class="face verso">0x${Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, "0")}</div>
-      <div class="face frente ${tipo === "termo" ? "termo" : "definicao"}">
-        <span class="etiqueta">${etiqueta}</span>
-        <span>${conteudo}</span>
-      </div>
-    </div>`;
-  carta.addEventListener("click", () => virarCarta(carta, conteudo));
-  return carta;
+function atualizarPlacarDec() {
+  decPontosEl.textContent = dec.pontos;
+  decAcertosEl.textContent = `${dec.acertos} de ${PALAVRAS.length}`;
+  decSequenciaEl.textContent = `x${Math.min(dec.sequencia + 1, 5)}`;
+  decTempoEl.textContent = `${dec.tempo}s`;
+  decClockEl.style.width = `${(dec.tempo / TEMPO_PARTIDA) * 100}%`;
+  decClockEl.classList.toggle("urgente", dec.tempo <= 15);
 }
 
-function novaPartidaMemoria() {
-  clearInterval(memRelogio);
-  memRelogio = null;
-  memViradas = [];
-  memHits = 0;
-  memMisses = 0;
-  memSegundos = 0;
-  memTravada = false;
-  atualizarPlacar();
-  memMensagemEl.textContent = `${PARES_POR_PARTIDA} pares sorteados entre as ${PALAVRAS.length} palavras. Boa sorte!`;
-  memMensagemEl.className = "mensagem";
+function mensagemDec(texto, tipo) {
+  decMensagemEl.textContent = texto;
+  decMensagemEl.className = "mensagem" + (tipo ? " " + tipo : "");
+}
 
-  const sorteadas = embaralhar(PALAVRAS).slice(0, PARES_POR_PARTIDA);
-  const cartas = [];
-  sorteadas.forEach((p) => {
-    cartas.push(criarCarta(p, "termo"));
-    cartas.push(criarCarta(p, "pista"));
+function iniciarDecodificador() {
+  clearInterval(dec && dec.relogio);
+  dec = {
+    fila: embaralhar(PALAVRAS),
+    indice: 0,
+    pontos: 0,
+    acertos: 0,
+    sequencia: 0,
+    tempo: TEMPO_PARTIDA,
+    ativo: true,
+    travado: false,
+    relogio: null,
+  };
+  dec.relogio = setInterval(() => {
+    dec.tempo--;
+    atualizarPlacarDec();
+    if (dec.tempo <= 0) encerrarDecodificador();
+  }, 1000);
+  btnIniciar.textContent = "Reiniciar";
+  [btnLimpar, btnDica, btnPular].forEach((b) => (b.disabled = false));
+  mensagemDec("");
+  atualizarPlacarDec();
+  carregarInstrucao();
+}
+
+function carregarInstrucao() {
+  if (dec.indice >= dec.fila.length) return encerrarDecodificador();
+  const palavra = dec.fila[dec.indice];
+  dec.palavra = palavra;
+  dec.slots = Array(palavra.resposta.length).fill(null); // cada slot guarda o chip usado
+  dec.dicas = new Set();
+  dec.travado = false;
+
+  decEnderecoEl.textContent = `PC = 0x${dec.indice.toString(16).toUpperCase().padStart(2, "0")}`;
+  decFaseEl.textContent = "BUSCA";
+  decFaseEl.className = "fase busca";
+  decPistaEl.textContent = palavra.pista;
+
+  decChipsEl.innerHTML = "";
+  gerarChips(palavra.resposta).forEach((letra) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.textContent = letra;
+    chip.addEventListener("click", () => colocarChip(chip));
+    decChipsEl.appendChild(chip);
   });
-  mesaEl.innerHTML = "";
-  embaralhar(cartas).forEach((carta) => mesaEl.appendChild(carta));
+  desenharSlots();
 }
 
-function virarCarta(carta, conteudo) {
-  if (memTravada || carta.classList.contains("virada") || carta.classList.contains("par")) return;
+function desenharSlots() {
+  decSlotsEl.className = "decod-slots";
+  decSlotsEl.innerHTML = "";
+  dec.slots.forEach((chip, i) => {
+    const slot = document.createElement("button");
+    slot.className = "slot" + (dec.dicas.has(i) ? " dica" : "");
+    slot.textContent = dec.dicas.has(i) ? dec.palavra.resposta[i] : chip ? chip.textContent : "";
+    slot.setAttribute("aria-label", `Posição ${i + 1}`);
+    slot.addEventListener("click", () => tirarChip(i));
+    decSlotsEl.appendChild(slot);
+  });
+}
 
-  // O relógio só começa no primeiro clique
-  if (!memRelogio) {
-    memRelogio = setInterval(() => {
-      memSegundos++;
-      atualizarPlacar();
-    }, 1000);
-  }
+function colocarChip(chip) {
+  if (!dec || !dec.ativo || dec.travado || chip.disabled) return;
+  const livre = dec.slots.findIndex((s, i) => s === null && !dec.dicas.has(i));
+  if (livre === -1) return;
+  dec.slots[livre] = chip;
+  chip.disabled = true;
+  desenharSlots();
+  if (dec.slots.every((s, i) => s !== null || dec.dicas.has(i))) executar();
+}
 
-  carta.classList.add("virada");
-  carta.setAttribute("aria-label", conteudo);
-  memViradas.push(carta);
-  if (memViradas.length < 2) return;
+function tirarChip(i) {
+  if (!dec || !dec.ativo || dec.travado || dec.dicas.has(i) || !dec.slots[i]) return;
+  dec.slots[i].disabled = false;
+  dec.slots[i] = null;
+  desenharSlots();
+}
 
-  const [a, b] = memViradas;
-  memViradas = [];
+function limparSlots() {
+  dec.slots.forEach((chip, i) => {
+    if (chip && !dec.dicas.has(i)) {
+      chip.disabled = false;
+      dec.slots[i] = null;
+    }
+  });
+  desenharSlots();
+}
 
-  if (a.dataset.par === b.dataset.par) {
-    memHits++;
-    [a, b].forEach((c) => {
-      c.classList.remove("virada");
-      c.classList.add("par");
-    });
-    const palavra = PALAVRAS.find((p) => p.resposta === a.dataset.par);
-    memMensagemEl.textContent = `Cache hit! ${palavra.termo}: ${palavra.pista}`;
-    memMensagemEl.className = "mensagem sucesso";
-  } else {
-    memMisses++;
-    memTravada = true;
-    [a, b].forEach((c) => c.classList.add("miss"));
-    memMensagemEl.textContent = "Cache miss! Esses dois não formam par. Hora de buscar na RAM...";
-    memMensagemEl.className = "mensagem alerta";
+// Fase de execução: confere a palavra montada
+function executar() {
+  const montada = dec.slots.map((chip, i) => (dec.dicas.has(i) ? dec.palavra.resposta[i] : chip.textContent)).join("");
+  decFaseEl.textContent = "EXECUÇÃO";
+  decFaseEl.className = "fase execucao";
+  dec.travado = true;
+
+  if (montada === dec.palavra.resposta) {
+    const multiplicador = Math.min(dec.sequencia + 1, 5);
+    // Só as letras montadas pelo jogador valem pontos (as da dica não)
+    const ganho = (dec.palavra.resposta.length - dec.dicas.size) * 10 * multiplicador;
+    dec.pontos += ganho;
+    dec.acertos++;
+    dec.sequencia++;
+    decSlotsEl.classList.add("certo");
+    mensagemDec(`Instrução executada! ${dec.palavra.termo} (+${ganho} pontos${multiplicador > 1 ? `, sequência x${multiplicador}` : ""})`, "sucesso");
+    atualizarPlacarDec();
     setTimeout(() => {
-      [a, b].forEach((c) => {
-        c.classList.remove("virada", "miss");
-        c.setAttribute("aria-label", "Carta virada para baixo");
-      });
-      memTravada = false;
-    }, 1100);
-  }
-  atualizarPlacar();
-
-  if (memHits === PARES_POR_PARTIDA) {
-    clearInterval(memRelogio);
-    const taxa = Math.round((memHits / (memHits + memMisses)) * 100);
-    let nivel = "Continue treinando: até a RAM é mais rápida que um HD!";
-    if (taxa >= 80) nivel = "Desempenho de registrador!";
-    else if (taxa >= 50) nivel = "Velocidade de cache, muito bom!";
-    memMensagemEl.textContent = `Todos os pares encontrados em ${memSegundos}s com ${taxa}% de acerto. ${nivel}`;
-    memMensagemEl.className = "mensagem sucesso";
+      if (!dec.ativo) return;
+      dec.indice++;
+      carregarInstrucao();
+    }, 900);
+  } else {
+    dec.sequencia = 0;
+    decSlotsEl.classList.add("errado");
+    mensagemDec("Instrução inválida! A sequência zerou. Reorganize as letras.", "alerta");
+    atualizarPlacarDec();
+    setTimeout(() => {
+      if (!dec.ativo) return;
+      dec.travado = false;
+      decFaseEl.textContent = "BUSCA";
+      decFaseEl.className = "fase busca";
+      limparSlots();
+    }, 700);
   }
 }
 
-document.getElementById("btn-nova-memoria").addEventListener("click", novaPartidaMemoria);
+function darDica() {
+  if (!dec || !dec.ativo || dec.travado) return;
+  const resposta = dec.palavra.resposta;
+  const pos = dec.slots.findIndex((chip, i) => !dec.dicas.has(i) && (!chip || chip.textContent !== resposta[i]));
+  if (pos === -1) return;
+
+  // Devolve o chip que estava na posição e "gasta" um chip com a letra certa
+  if (dec.slots[pos]) {
+    dec.slots[pos].disabled = false;
+    dec.slots[pos] = null;
+  }
+  let chip = [...decChipsEl.children].find((c) => !c.disabled && c.textContent === resposta[pos]);
+  if (!chip) {
+    // a letra certa está em outra posição: libera de lá
+    const outro = dec.slots.findIndex((c, i) => c && c.textContent === resposta[pos] && !dec.dicas.has(i));
+    chip = dec.slots[outro];
+    dec.slots[outro] = null;
+  }
+  chip.disabled = true;
+  dec.slots[pos] = chip;
+  dec.dicas.add(pos);
+  dec.pontos = Math.max(0, dec.pontos - 5);
+  atualizarPlacarDec();
+  desenharSlots();
+  if (dec.slots.every((s, i) => s !== null || dec.dicas.has(i))) executar();
+}
+
+function pularInstrucao() {
+  if (!dec || !dec.ativo || dec.travado) return;
+  dec.sequencia = 0;
+  mensagemDec(`Pulou! A resposta era ${dec.palavra.resposta}.`, "alerta");
+  // a palavra pulada volta para o fim da fila
+  dec.fila.push(dec.fila.splice(dec.indice, 1)[0]);
+  atualizarPlacarDec();
+  carregarInstrucao();
+}
+
+function encerrarDecodificador() {
+  clearInterval(dec.relogio);
+  dec.ativo = false;
+  [btnLimpar, btnDica, btnPular].forEach((b) => (b.disabled = true));
+  [...decChipsEl.children].forEach((c) => (c.disabled = true));
+  decFaseEl.textContent = "HALT";
+  decFaseEl.className = "fase";
+  btnIniciar.textContent = "Jogar de novo";
+
+  let nivel = "Nível HD: ainda está lento, mas dá para acelerar treinando!";
+  if (dec.acertos === PALAVRAS.length) nivel = "Nível registrador: decodificou tudo!";
+  else if (dec.acertos >= 10) nivel = "Nível cache: muito rápido!";
+  else if (dec.acertos >= 5) nivel = "Nível RAM: bom ritmo!";
+  decPistaEl.textContent = `Fim da execução: ${dec.acertos} de ${PALAVRAS.length} palavras e ${dec.pontos} pontos.`;
+  mensagemDec(nivel, "sucesso");
+}
+
+// Teclado: digitar uma letra pega o chip correspondente; Backspace devolve o último
+document.addEventListener("keydown", (e) => {
+  const painelAtivo = document.querySelector(".painel.ativo");
+  if (!dec || !dec.ativo || painelAtivo.id !== "decodificador") return;
+  if (e.key === "Backspace") {
+    e.preventDefault();
+    for (let i = dec.slots.length - 1; i >= 0; i--) {
+      if (dec.slots[i] && !dec.dicas.has(i)) return tirarChip(i);
+    }
+    return;
+  }
+  const letra = e.key.toUpperCase();
+  if (/^[A-Z]$/.test(letra)) {
+    const chip = [...decChipsEl.children].find((c) => !c.disabled && c.textContent === letra);
+    if (chip) colocarChip(chip);
+  }
+});
+
+btnIniciar.addEventListener("click", iniciarDecodificador);
+btnLimpar.addEventListener("click", () => dec && dec.ativo && !dec.travado && limparSlots());
+btnDica.addEventListener("click", darDica);
+btnPular.addEventListener("click", pularInstrucao);
 
 // ---------------------------------------------------------
 // 6. Abas
@@ -497,4 +629,3 @@ document.querySelectorAll(".aba").forEach((aba) => {
 // ---------------------------------------------------------
 montarGrade();
 montarPistas();
-novaPartidaMemoria();

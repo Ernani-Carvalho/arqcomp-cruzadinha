@@ -28,8 +28,8 @@
     <button class="aba ativa" role="tab" aria-selected="true" data-alvo="cruzadinha">
       <span class="led"></span> Cruzadinha
     </button>
-    <button class="aba" role="tab" aria-selected="false" data-alvo="memoria">
-      <span class="led"></span> Jogo da Memória Cache
+    <button class="aba" role="tab" aria-selected="false" data-alvo="decodificador">
+      <span class="led"></span> Decodificador
     </button>
   </nav>
 
@@ -69,28 +69,43 @@
       </div>
     </section>
 
-    <!-- ===================== JOGO DA MEMÓRIA ===================== -->
-    <section id="memoria" class="painel">
-      <div class="intro-memoria">
-        <h2>Jogo da Memória Cache</h2>
-        <p>Vire duas cartas e ligue cada <strong>termo</strong> à sua <strong>pista</strong>. Achou o par? <em>Cache hit!</em> Errou? <em>Cache miss</em>, e as cartas voltam. Tente terminar com a maior taxa de acertos.</p>
+    <!-- ===================== DECODIFICADOR ===================== -->
+    <section id="decodificador" class="painel">
+      <div class="intro-jogo">
+        <h2>Decodificador de Instruções</h2>
+        <p>A CPU buscou uma instrução, mas as letras chegaram embaralhadas! Leia a pista e monte a palavra clicando nos chips (ou digitando no teclado). Cuidado: há <strong>2 letras intrusas</strong> em cada instrução. Você tem <strong>120 segundos</strong> para decodificar o máximo de palavras.</p>
       </div>
 
       <div class="barra-status">
         <div class="placar">
-          <div><span class="rotulo">Hits</span><strong id="mem-hits">0</strong></div>
-          <div><span class="rotulo">Misses</span><strong id="mem-misses">0</strong></div>
-          <div><span class="rotulo">Taxa de acerto</span><strong id="mem-taxa">—</strong></div>
-          <div><span class="rotulo">Tempo</span><strong id="mem-tempo">0s</strong></div>
+          <div><span class="rotulo">Pontos</span><strong id="dec-pontos">0</strong></div>
+          <div><span class="rotulo">Decodificadas</span><strong id="dec-acertos">0 de 16</strong></div>
+          <div><span class="rotulo">Sequência</span><strong id="dec-sequencia">x1</strong></div>
+          <div><span class="rotulo">Tempo</span><strong id="dec-tempo">120s</strong></div>
         </div>
         <div class="botoes">
-          <button id="btn-nova-memoria" class="btn btn-principal">Nova partida</button>
+          <button id="btn-dec-iniciar" class="btn btn-principal">Iniciar</button>
         </div>
       </div>
 
-      <p id="mem-mensagem" class="mensagem" role="status">8 pares sorteados entre as 16 palavras. Boa sorte!</p>
+      <div class="clock" aria-hidden="true"><div id="dec-clock-barra"></div></div>
 
-      <div id="mesa-memoria" class="mesa-memoria"></div>
+      <div class="decod-console">
+        <div class="decod-cabecalho">
+          <span id="dec-endereco" class="endereco">PC = 0x00</span>
+          <span class="fase" id="dec-fase">AGUARDANDO</span>
+        </div>
+        <p id="dec-pista" class="decod-pista">Clique em <strong>Iniciar</strong> para ligar a CPU.</p>
+        <div id="dec-slots" class="decod-slots"></div>
+        <div id="dec-chips" class="decod-chips"></div>
+        <div class="decod-acoes">
+          <button id="btn-dec-limpar" class="btn" disabled>Limpar</button>
+          <button id="btn-dec-dica" class="btn" disabled>Dica (−5)</button>
+          <button id="btn-dec-pular" class="btn" disabled>Pular</button>
+        </div>
+      </div>
+
+      <p id="dec-mensagem" class="mensagem" role="status"></p>
     </section>
   </main>
 
