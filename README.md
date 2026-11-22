@@ -4,7 +4,7 @@ Jogo de cruzadinha para treinar os termos da aula de **Tópicos de Arquitetura C
 
 Feito com HTML, CSS e JavaScript puros, sem bibliotecas.
 
-**Site publicado:** _link do GitHub Pages aqui_
+**Site publicado:** https://ernani-carvalho.github.io/arqcomp-cruzadinha/
 
 ## Como jogar
 
